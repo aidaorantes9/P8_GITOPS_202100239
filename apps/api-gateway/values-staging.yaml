@@ -1,0 +1,12 @@
+# valores especificos del ambiente staging para api-gateway
+image:
+  repository: ghcr.io/aidaorantes9/sa-practica-api-gateway
+  tag: "v0.0.0-init"
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+replicaCount: 1
+autoscaling:
+  enabled: false

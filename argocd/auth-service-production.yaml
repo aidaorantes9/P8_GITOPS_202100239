@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auth-service-production
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/aidaorantes9/Practicas-SA-B-202100239.git
+      targetRevision: main
+      path: P5/charts/sa-platform/charts/auth-service
+      helm:
+        parameters:
+          - name: sharedConfigMapName
+            value: "sa-p8-app-config"
+          - name: sharedSecretName
+            value: "sa-p8-app-secrets"
+        valueFiles:
+          - $values/apps/auth-service/values-production.yaml
+    - repoURL: https://github.com/aidaorantes9/P8_GITOPS_202100239.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

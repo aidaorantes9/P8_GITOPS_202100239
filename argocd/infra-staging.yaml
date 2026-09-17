@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-staging
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/aidaorantes9/Practicas-SA-B-202100239.git
+    targetRevision: main
+    path: P5/charts/sa-platform
+    helm:
+      releaseName: sa-p8
+      parameters:
+        - name: secrets.manageInChart
+          value: "false"
+        - name: auth-service.enabled
+          value: "false"
+        - name: artists-service.enabled
+          value: "false"
+        - name: appointments-service.enabled
+          value: "false"
+        - name: notification-service.enabled
+          value: "false"
+        - name: api-gateway.enabled
+          value: "false"
+        - name: postgresql.auth.existingSecret
+          value: "sa-p8-app-secrets"
+        - name: postgresql.auth.secretKeys.adminPasswordKey
+          value: "postgres-password"
+        - name: postgresql.auth.secretKeys.userPasswordKey
+          value: "password"
+        - name: rabbitmq.auth.existingPasswordSecret
+          value: "sa-p8-app-secrets"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

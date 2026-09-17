@@ -1,0 +1,12 @@
+# valores especificos del ambiente production para notification-service
+image:
+  repository: ghcr.io/aidaorantes9/sa-practica-notification-service
+  tag: "v0.0.0-init"
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+replicaCount: 2
+autoscaling:
+  enabled: false

@@ -1,0 +1,12 @@
+# valores especificos del ambiente staging para appointments-service
+image:
+  repository: ghcr.io/aidaorantes9/sa-practica-appointments-service
+  tag: "v0.0.0-init"
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+replicaCount: 1
+autoscaling:
+  enabled: false
