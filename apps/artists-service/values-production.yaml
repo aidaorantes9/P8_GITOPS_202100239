@@ -4,8 +4,6 @@ image:
   tag: "v0.1.5"
   pullPolicy: Always
 
-imagePullSecrets:
-  - name: ghcr-pull-secret
 
 replicaCount: 2
 autoscaling:
