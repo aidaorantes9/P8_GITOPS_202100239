@@ -1,7 +1,7 @@
 # valores especificos del ambiente staging para notification-service
 image:
   repository: ghcr.io/aidaorantes9/sa-practica-notification-service
-  tag: "v0.0.0-init"
+  tag: "v0.1.5"
   pullPolicy: Always
 
 

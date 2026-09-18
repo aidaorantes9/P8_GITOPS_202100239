@@ -1,7 +1,7 @@
 # valores especificos del ambiente staging para appointments-service
 image:
   repository: ghcr.io/aidaorantes9/sa-practica-appointments-service
-  tag: "v0.0.0-init"
+  tag: "v0.1.5"
   pullPolicy: Always
 
 
