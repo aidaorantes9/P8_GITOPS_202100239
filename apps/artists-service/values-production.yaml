@@ -1,7 +1,7 @@
 # valores especificos del ambiente production para artists-service
 image:
   repository: ghcr.io/aidaorantes9/sa-practica-artists-service
-  tag: "v0.1.5"
+  tag: "v0.1.6"
   pullPolicy: Always
 
 
