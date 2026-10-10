@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: velero
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  project: default
+  source:
+    repoURL: https://vmware-tanzu.github.io/helm-charts
+    chart: velero
+    targetRevision: 12.2.1
+    helm:
+      valuesObject:
+        upgradeCRDs: false
+        cleanUpCRDs: false
+        initContainers:
+          - name: velero-plugin-for-gcp
+            image: velero/velero-plugin-for-gcp:v1.14.4
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+              - mountPath: /target
+                name: plugins
+        # el Secret lo crea Terraform desde GCP Secret Manager
+        credentials:
+          useSecret: true
+          existingSecret: velero-gcp-credentials
+        snapshotsEnabled: false
+        deployNodeAgent: true
+        configuration:
+          uploaderType: kopia
+          defaultVolumesToFsBackup: true
+          backupStorageLocation:
+            - name: default
+              provider: gcp
+              bucket: sa-p9-202100239-velero
+              default: true
+          volumeSnapshotLocation: []
+        # RPO objetivo: 15 min. Retencion: 72 h. Los respaldos sobreviven al Schedule.
+        schedules:
+          production-cada-15min:
+            disabled: false
+            schedule: "*/15 * * * *"
+            useOwnerReferencesInBackup: false
+            template:
+              ttl: 72h0m0s
+              includedNamespaces:
+                - production
+              defaultVolumesToFsBackup: true
+              storageLocation: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: velero
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      backoff:
+        duration: 20s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - ServerSide=true
