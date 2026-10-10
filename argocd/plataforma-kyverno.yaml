@@ -24,6 +24,12 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
+  # el chart renderiza labels: {} en estas CRDs y el API server no guarda mapas vacios
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      jsonPointers:
+        - /metadata/labels
   syncPolicy:
     automated:
       prune: true
