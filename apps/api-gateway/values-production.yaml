@@ -5,10 +5,26 @@ image:
   pullPolicy: Always
 
 
-replicaCount: 1
+replicaCount: 2
 autoscaling:
   enabled: false
 
 # kind no tiene controlador de ingress: el trafico se prueba dentro del cluster contra el Service
 ingress:
   enabled: false
+
+# P9 - resiliencia ante perdida de nodo
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+# preferida y no requerida: con 2 workers, una regla requerida impediria
+# programar el pod canary y dejaria en Pending la replica desalojada al drenar
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: api-gateway
