@@ -8,3 +8,7 @@ image:
 replicaCount: 1
 autoscaling:
   enabled: false
+
+# kind no tiene controlador de ingress: el trafico se prueba dentro del cluster contra el Service
+ingress:
+  enabled: false
