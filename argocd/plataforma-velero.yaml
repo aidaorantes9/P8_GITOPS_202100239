@@ -30,7 +30,7 @@ spec:
         deployNodeAgent: true
         configuration:
           uploaderType: kopia
-          defaultVolumesToFsBackup: true
+          defaultVolumesToFsBackup: false  # opt-in: solo volumenes anotados con backup.velero.io/backup-volumes
           backupStorageLocation:
             - name: default
               provider: gcp
@@ -47,7 +47,7 @@ spec:
               ttl: 72h0m0s
               includedNamespaces:
                 - production
-              defaultVolumesToFsBackup: true
+              defaultVolumesToFsBackup: false  # opt-in: solo volumenes anotados con backup.velero.io/backup-volumes
               storageLocation: default
   destination:
     server: https://kubernetes.default.svc
