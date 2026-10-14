@@ -1,0 +1,22 @@
+# P10 - reglas de SLO y alertas (PrometheusRule) y, mas adelante, el tablero de Grafana.
+# Wave 1: necesita las CRDs de prometheus-operator, que instala plataforma-monitoring en la wave -3.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observabilidad
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/aidaorantes9/P8_GITOPS_202100239.git
+    targetRevision: main
+    path: observabilidad
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

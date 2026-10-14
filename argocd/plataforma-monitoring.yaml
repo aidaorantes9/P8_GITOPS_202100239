@@ -30,7 +30,7 @@ spec:
           prometheusSpec:
             scrapeInterval: 15s
             evaluationInterval: 15s
-            retention: 3d
+            retention: 8d
             serviceMonitorSelectorNilUsesHelmValues: false
             podMonitorSelectorNilUsesHelmValues: false
             ruleSelectorNilUsesHelmValues: false
