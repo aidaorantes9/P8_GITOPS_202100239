@@ -24,3 +24,12 @@ affinity:
           labelSelector:
             matchLabels:
               app.kubernetes.io/name: appointments-service
+
+# P10 - observabilidad: trazas al OTel Collector y metricas leidas por Prometheus
+extraEnv:
+  - name: OTEL_SERVICE_NAME
+    value: appointments-service
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://otel-collector.monitoring.svc:4318
+serviceMonitor:
+  enabled: true

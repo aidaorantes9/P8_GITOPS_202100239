@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: trafico-production
+  namespace: argocd
+  annotations:
+    # misma wave que los servicios: el canary necesita trafico para poder promoverse
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/aidaorantes9/P8_GITOPS_202100239.git
+    targetRevision: main
+    path: trafico
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated: {prune: true, selfHeal: true}
+    retry: {limit: 10, backoff: {duration: 20s, factor: 2, maxDuration: 5m}}

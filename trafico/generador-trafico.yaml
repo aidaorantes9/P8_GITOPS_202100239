@@ -1,0 +1,119 @@
+# P10 - generador de trafico real hacia el api-gateway.
+# Simula clientes del estudio: consulta el catalogo de artistas, agenda citas en fechas aleatorias
+# (algunas chocan de horario y se rechazan, como en la realidad) y a veces escribe mal la contrasena.
+# Sin este trafico, el canary no tendria comportamiento real que medir.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: generador-trafico
+  namespace: production
+data:
+  generar.sh: |
+    #!/bin/sh
+    G="http://api-gateway-production:3000"
+    JSON="Content-Type: application/json"
+    COOKIES=/tmp/cookies
+    EMAIL="cliente-generador@p10.local"
+    CLAVE="ClaveGenerador2026"
+
+    log() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*"; }
+
+    iniciar_sesion() {
+      curl -s -o /dev/null -c "$COOKIES" -H "$JSON" \
+        -d "{\"email\":\"$EMAIL\",\"password\":\"$CLAVE\"}" "$G/api/auth/login"
+    }
+
+    # 1. esperar a que el gateway responda
+    until curl -sf -o /dev/null "$G/health"; do log "esperando al gateway"; sleep 5; done
+
+    # 2. crear 3 artistas para poder agendar (la tabla puede estar vacia)
+    ARTISTAS=""
+    for nombre in "Ana Realismo" "Beto Blackwork" "Caro Acuarela"; do
+      id=$(curl -s -H "$JSON" \
+        -d "{\"query\":\"mutation { createArtist(name: \\\"$nombre\\\", specialty: \\\"general\\\") { id } }\"}" \
+        "$G/api/artists/graphql" | sed -n 's/.*"id": *"\{0,1\}\([0-9][0-9]*\).*/\1/p')
+      [ -n "$id" ] && ARTISTAS="$ARTISTAS $id"
+    done
+    [ -z "$ARTISTAS" ] && ARTISTAS="1 2 3"
+    log "artistas disponibles:$ARTISTAS"
+
+    # 3. registrar el cliente (si ya existe responde 409, no importa) e iniciar sesion
+    curl -s -o /dev/null -H "$JSON" \
+      -d "{\"name\":\"Cliente Generador\",\"email\":\"$EMAIL\",\"password\":\"$CLAVE\",\"role\":\"cliente\"}" \
+      "$G/api/auth/register"
+    iniciar_sesion
+
+    # 4. trafico continuo, una ronda por segundo
+    i=0
+    while true; do
+      i=$((i + 1))
+
+      # catalogo publico
+      curl -s -o /dev/null -H "$JSON" -d '{"query":"{ __typename }"}' "$G/api/artists/graphql"
+
+      # agendar una cita: artista y fecha aleatorios en 2027
+      set -- $ARTISTAS
+      n=$(( (RANDOM % $#) + 1 )); eval artista=\${$n}
+      mes=$(printf "%02d" $(( (RANDOM % 12) + 1 )))
+      dia=$(printf "%02d" $(( (RANDOM % 28) + 1 )))
+      hora=$(printf "%02d" $(( (RANDOM % 10) + 8 )))
+      curl -s -o /dev/null -b "$COOKIES" -H "$JSON" \
+        -d "{\"query\":\"mutation { createAppointment(artistId: $artista, date: \\\"2027-$mes-${dia}T$hora:00:00Z\\\", bodyPart: \\\"brazo\\\", design: \\\"generado\\\", durationMinutes: 60) { id } }\"}" \
+        "$G/api/appointments/graphql"
+
+      # cada 10 rondas, un inicio de sesion con contrasena equivocada
+      if [ $((i % 10)) -eq 0 ]; then
+        curl -s -o /dev/null -H "$JSON" \
+          -d "{\"email\":\"$EMAIL\",\"password\":\"equivocada\"}" "$G/api/auth/login"
+      fi
+
+      # cada 50 rondas se renueva la sesion, para que el token no expire
+      if [ $((i % 50)) -eq 0 ]; then iniciar_sesion; log "ronda $i"; fi
+
+      sleep 1
+    done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: generador-trafico
+  namespace: production
+  labels:
+    app.kubernetes.io/name: generador-trafico
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: generador-trafico
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: generador-trafico
+        # las NetworkPolicies de P8 ya permiten este rol hacia los servicios
+        role: smoke-test
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+      containers:
+        - name: generador
+          image: curlimages/curl:8.10.1
+          command: ["sh", "/script/generar.sh"]
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: script
+              mountPath: /script
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: script
+          configMap:
+            name: generador-trafico
+        - name: tmp
+          emptyDir: {}
