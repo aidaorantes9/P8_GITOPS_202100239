@@ -21,6 +21,7 @@ spec:
                 - argocd
                 - argo-rollouts
                 - velero
+                - monitoring
                 - calico-system
                 - tigera-operator
                 - local-path-storage
