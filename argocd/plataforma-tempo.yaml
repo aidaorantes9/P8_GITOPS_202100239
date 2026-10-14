@@ -22,7 +22,7 @@ spec:
                 http: {endpoint: "0.0.0.0:4318"}
           resources:
             requests: {cpu: 50m, memory: 128Mi}
-            limits: {memory: 512Mi}
+            limits: {memory: 1536Mi}
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
