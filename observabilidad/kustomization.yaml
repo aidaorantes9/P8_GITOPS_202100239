@@ -1,0 +1,16 @@
+# P10 - observabilidad del estudio: reglas de SLO y alertas, y el tablero de Grafana como ConfigMap.
+# El sidecar de Grafana carga todo ConfigMap del namespace monitoring con la etiqueta grafana_dashboard: "1".
+# La fuente del tablero esta en el repo de codigo: P10/tablero/generar-tablero.py
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - slo-reglas.yaml
+configMapGenerator:
+  - name: tablero-p10-senales-de-oro
+    files:
+      - tablero-senales-de-oro.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
