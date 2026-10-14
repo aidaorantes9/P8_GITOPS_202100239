@@ -39,6 +39,20 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: production
+  # P10: el chart de RabbitMQ (Bitnami) genera un erlang cookie aleatorio en cada render, porque desde
+  # ArgoCD no puede leer el que ya existe. Eso cambiaba el secret y el checksum/secret del StatefulSet,
+  # y cada commit al repo de codigo reiniciaba RabbitMQ (incidentes del 14/10/2026 a las 15:11 y 15:36).
+  # Se ignoran esos dos campos y se conserva el valor vivo al sincronizar (RespectIgnoreDifferences).
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: sa-p8-rabbitmq
+      jqPathExpressions:
+        - '.spec.template.metadata.annotations."checksum/secret"'
+    - kind: Secret
+      name: sa-p8-rabbitmq
+      jsonPointers:
+        - /data/rabbitmq-erlang-cookie
   syncPolicy:
     automated:
       prune: true
@@ -51,3 +65,4 @@ spec:
         maxDuration: 5m
     syncOptions:
       - CreateNamespace=false
+      - RespectIgnoreDifferences=true
