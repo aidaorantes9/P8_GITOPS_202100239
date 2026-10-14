@@ -33,3 +33,9 @@ extraEnv:
     value: http://otel-collector.monitoring.svc:4318
 serviceMonitor:
   enabled: true
+
+# P10: umbral de latencia propio para el canary de auth. El login calcula bcrypt a proposito
+# (p95 de /api/auth/login = 0,95 s en la version estable), asi que el limite comun de 0,5 s
+# daba falsos positivos: el canary de v0.1.8 se aborto el 14/10/2026 sin cambios en el codigo.
+analisis:
+  maxLatenciaP95: 1
