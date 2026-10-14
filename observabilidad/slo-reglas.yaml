@@ -22,15 +22,15 @@ spec:
       interval: 30s
       rules:
         - record: slo:citas_error:ratio_rate5m
-          expr: sum(rate(citas_intentos_total{resultado="error"}[5m])) / sum(rate(citas_intentos_total[5m]))
+          expr: (sum(rate(citas_intentos_total{resultado="error"}[5m])) or vector(0)) / sum(rate(citas_intentos_total[5m]))
         - record: slo:citas_error:ratio_rate30m
-          expr: sum(rate(citas_intentos_total{resultado="error"}[30m])) / sum(rate(citas_intentos_total[30m]))
+          expr: (sum(rate(citas_intentos_total{resultado="error"}[30m])) or vector(0)) / sum(rate(citas_intentos_total[30m]))
         - record: slo:citas_error:ratio_rate1h
-          expr: sum(rate(citas_intentos_total{resultado="error"}[1h])) / sum(rate(citas_intentos_total[1h]))
+          expr: (sum(rate(citas_intentos_total{resultado="error"}[1h])) or vector(0)) / sum(rate(citas_intentos_total[1h]))
         - record: slo:citas_error:ratio_rate6h
-          expr: sum(rate(citas_intentos_total{resultado="error"}[6h])) / sum(rate(citas_intentos_total[6h]))
+          expr: (sum(rate(citas_intentos_total{resultado="error"}[6h])) or vector(0)) / sum(rate(citas_intentos_total[6h]))
         - record: slo:citas_error:ratio_rate7d
-          expr: sum(rate(citas_intentos_total{resultado="error"}[7d])) / sum(rate(citas_intentos_total[7d]))
+          expr: (sum(rate(citas_intentos_total{resultado="error"}[7d])) or vector(0)) / sum(rate(citas_intentos_total[7d]))
         # SLI: proporcion de intentos sin error del sistema (lo que ve el cliente)
         - record: slo:citas_sli:ratio_rate7d
           expr: 1 - slo:citas_error:ratio_rate7d
