@@ -6,8 +6,9 @@
 #
 # Alertas multiventana (metodo del libro de SRE de Google): una ventana larga confirma que el consumo es sostenido
 # y una corta (1/12 de la larga) hace que la alerta se apague rapido cuando el problema se resuelve.
-#   Quema rapida: 14,4 veces el ritmo permitido en 1 h y en 5 min  -> severidad critical (atender ya).
-#   Quema lenta:   6 veces el ritmo permitido en 6 h y en 30 min    -> severidad warning (atender en horario).
+#   Tasa de quema (burn rate) = tasa de error / (1 - objetivo): 1 = se consume justo a tiempo para durar 7 dias.
+#   Quema rapida: burn rate > 14,4 en 1 h y en 5 min  -> severidad critical (atender ya).
+#   Quema lenta:  burn rate > 6 en 6 h y en 30 min    -> severidad warning (atender en horario).
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -34,6 +35,15 @@ spec:
         # SLI: proporcion de intentos sin error del sistema (lo que ve el cliente)
         - record: slo:citas_sli:ratio_rate7d
           expr: 1 - slo:citas_error:ratio_rate7d
+        # tasa de quema: cuantas veces mas rapido de lo permitido se consume el presupuesto (0.99)
+        - record: slo:citas_burn_rate:5m
+          expr: slo:citas_error:ratio_rate5m / (1 - 0.99)
+        - record: slo:citas_burn_rate:30m
+          expr: slo:citas_error:ratio_rate30m / (1 - 0.99)
+        - record: slo:citas_burn_rate:1h
+          expr: slo:citas_error:ratio_rate1h / (1 - 0.99)
+        - record: slo:citas_burn_rate:6h
+          expr: slo:citas_error:ratio_rate6h / (1 - 0.99)
         - record: slo:citas:objetivo
           expr: vector(0.99)
         # presupuesto de error consumido en la ventana (1 = agotado) y restante
@@ -46,30 +56,30 @@ spec:
       rules:
         - alert: CitasPresupuestoQuemaRapida
           expr: |
-            slo:citas_error:ratio_rate1h > (14.4 * (1 - 0.99))
+            slo:citas_burn_rate:1h > 14.4
             and
-            slo:citas_error:ratio_rate5m > (14.4 * (1 - 0.99))
+            slo:citas_burn_rate:5m > 14.4
           for: 1m
           labels:
             severity: critical
             slo: agendar-cita
           annotations:
             summary: "Agendar cita esta quemando el presupuesto de error 14,4 veces mas rapido de lo permitido"
-            description: "{{ $value | humanizePercentage }} de los intentos de agendar cita de la ultima hora terminaron en error del sistema (umbral 14,4 %). A este ritmo el presupuesto de 7 dias se agota en unas 12 horas."
+            description: "En la ultima hora el presupuesto de error se consume {{ $value | humanize }} veces mas rapido de lo permitido (umbral 14,4). A este ritmo el presupuesto de 7 dias se agota en unas 12 horas."
             runbook_url: "https://github.com/aidaorantes9/Practicas-SA-B-202100239/blob/main/P10/runbooks/CitasPresupuestoQuemaRapida.md"
             tablero: "Grafana > P10 Senales de oro > fila Negocio"
         - alert: CitasPresupuestoQuemaLenta
           expr: |
-            slo:citas_error:ratio_rate6h > (6 * (1 - 0.99))
+            slo:citas_burn_rate:6h > 6
             and
-            slo:citas_error:ratio_rate30m > (6 * (1 - 0.99))
+            slo:citas_burn_rate:30m > 6
           for: 5m
           labels:
             severity: warning
             slo: agendar-cita
           annotations:
             summary: "Agendar cita consume el presupuesto de error 6 veces mas rapido de lo permitido"
-            description: "{{ $value | humanizePercentage }} de los intentos de las ultimas 6 horas terminaron en error del sistema (umbral 6 %). A este ritmo el presupuesto de 7 dias se agota en poco mas de un dia."
+            description: "En las ultimas 6 horas el presupuesto de error se consume {{ $value | humanize }} veces mas rapido de lo permitido (umbral 6). A este ritmo el presupuesto de 7 dias se agota en poco mas de un dia."
             runbook_url: "https://github.com/aidaorantes9/Practicas-SA-B-202100239/blob/main/P10/runbooks/CitasPresupuestoQuemaLenta.md"
             tablero: "Grafana > P10 Senales de oro > fila Negocio"
 
@@ -89,6 +99,15 @@ spec:
           expr: 1 - (sum(rate(http_request_duration_seconds_bucket{app="api-gateway",le="0.5"}[7d])) / sum(rate(http_request_duration_seconds_count{app="api-gateway"}[7d])))
         - record: slo:gateway_latencia_sli:ratio_rate7d
           expr: 1 - slo:gateway_lentas:ratio_rate7d
+        # tasa de quema: cuantas veces mas rapido de lo permitido se consume el presupuesto (0.95)
+        - record: slo:gateway_latencia_burn_rate:5m
+          expr: slo:gateway_lentas:ratio_rate5m / (1 - 0.95)
+        - record: slo:gateway_latencia_burn_rate:30m
+          expr: slo:gateway_lentas:ratio_rate30m / (1 - 0.95)
+        - record: slo:gateway_latencia_burn_rate:1h
+          expr: slo:gateway_lentas:ratio_rate1h / (1 - 0.95)
+        - record: slo:gateway_latencia_burn_rate:6h
+          expr: slo:gateway_lentas:ratio_rate6h / (1 - 0.95)
         - record: slo:gateway_latencia:objetivo
           expr: vector(0.95)
         - record: slo:gateway_latencia_presupuesto:consumido
@@ -100,29 +119,29 @@ spec:
       rules:
         - alert: GatewayLatenciaQuemaRapida
           expr: |
-            slo:gateway_lentas:ratio_rate1h > (14.4 * (1 - 0.95))
+            slo:gateway_latencia_burn_rate:1h > 14.4
             and
-            slo:gateway_lentas:ratio_rate5m > (14.4 * (1 - 0.95))
+            slo:gateway_latencia_burn_rate:5m > 14.4
           for: 1m
           labels:
             severity: critical
             slo: latencia-gateway
           annotations:
             summary: "El gateway responde lento: presupuesto de latencia quemandose 14,4 veces mas rapido de lo permitido"
-            description: "{{ $value | humanizePercentage }} de las peticiones de la ultima hora tardaron 0,5 s o mas (umbral 72 %)."
+            description: "En la ultima hora el presupuesto de latencia se consume {{ $value | humanize }} veces mas rapido de lo permitido (umbral 14,4)."
             runbook_url: "https://github.com/aidaorantes9/Practicas-SA-B-202100239/blob/main/P10/runbooks/GatewayLatenciaQuemaRapida.md"
             tablero: "Grafana > P10 Senales de oro > fila Latencia"
         - alert: GatewayLatenciaQuemaLenta
           expr: |
-            slo:gateway_lentas:ratio_rate6h > (6 * (1 - 0.95))
+            slo:gateway_latencia_burn_rate:6h > 6
             and
-            slo:gateway_lentas:ratio_rate30m > (6 * (1 - 0.95))
+            slo:gateway_latencia_burn_rate:30m > 6
           for: 5m
           labels:
             severity: warning
             slo: latencia-gateway
           annotations:
             summary: "El gateway consume el presupuesto de latencia 6 veces mas rapido de lo permitido"
-            description: "{{ $value | humanizePercentage }} de las peticiones de las ultimas 6 horas tardaron 0,5 s o mas (umbral 30 %)."
+            description: "En las ultimas 6 horas el presupuesto de latencia se consume {{ $value | humanize }} veces mas rapido de lo permitido (umbral 6)."
             runbook_url: "https://github.com/aidaorantes9/Practicas-SA-B-202100239/blob/main/P10/runbooks/GatewayLatenciaQuemaLenta.md"
             tablero: "Grafana > P10 Senales de oro > fila Latencia"
