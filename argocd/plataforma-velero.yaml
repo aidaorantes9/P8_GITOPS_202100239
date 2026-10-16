@@ -47,7 +47,24 @@ spec:
               ttl: 72h0m0s
               includedNamespaces:
                 - production
-              defaultVolumesToFsBackup: false  # opt-in: solo volumenes anotados con backup.velero.io/backup-volumes
+              defaultVolumesToFsBackup: true   # P10: todos los volumenes del namespace (opt-out con backup.velero.io/backup-volumes-excludes)
+              storageLocation: default
+          # P10: segunda copia de la llave de Sealed Secrets, fuera del cluster (la primera esta en Secret Manager).
+          # Solo el secret de la llave, filtrado por su etiqueta; se conserva 30 dias.
+          llave-sealed-secrets-diario:
+            disabled: false
+            schedule: "30 2 * * *"
+            useOwnerReferencesInBackup: false
+            template:
+              ttl: 720h0m0s
+              includedNamespaces:
+                - kube-system
+              includedResources:
+                - secrets
+              labelSelector:
+                matchExpressions:
+                  - key: sealedsecrets.bitnami.com/sealed-secrets-key
+                    operator: Exists
               storageLocation: default
   destination:
     server: https://kubernetes.default.svc
